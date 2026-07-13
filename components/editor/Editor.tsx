@@ -28,6 +28,8 @@ function blocksToTiptapContent(blocks: BlockRow[]) {
     return blockToNode(block, blockChildren);
   });
 
+  if (nodes.length === 0) return { type: "doc", content: [{ type: "paragraph" }] };
+
   return { type: "doc", content: nodes };
 }
 
@@ -143,7 +145,7 @@ function tiptapDocToBlocks(doc: Record<string, unknown>, pageId: string): Omit<B
 }
 
 export function Editor({ page, initialBlocks }: Props) {
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [title, setTitle] = useState(page.title);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageId = page.id;
@@ -152,13 +154,19 @@ export function Editor({ page, initialBlocks }: Props) {
     async (doc: Record<string, unknown>) => {
       setSaveState("saving");
       const blocks = tiptapDocToBlocks(doc, pageId);
-      await fetch(`/api/pages/${pageId}/blocks`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blocks }),
-      });
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 2000);
+      try {
+        const res = await fetch(`/api/pages/${pageId}/blocks`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blocks }),
+        });
+        if (!res.ok) throw new Error("Save failed");
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 2000);
+      } catch {
+        setSaveState("error");
+        setTimeout(() => setSaveState("idle"), 2000);
+      }
     },
     [pageId]
   );
@@ -215,6 +223,7 @@ export function Editor({ page, initialBlocks }: Props) {
         <div className="text-xs text-gray-400 shrink-0 ml-4">
           {saveState === "saving" && "Saving..."}
           {saveState === "saved" && "Saved"}
+          {saveState === "error" && "Save failed"}
         </div>
       </div>
 
