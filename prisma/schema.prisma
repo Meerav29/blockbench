@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  pages     Page[]
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  title       String   @default("Untitled")
+  icon        String?
+  position    Int      @default(0)
+  workspaceId String
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    Page?     @relation("PageChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Page[]    @relation("PageChildren")
+  blocks    Block[]
+}
+
+model Block {
+  id            String   @id @default(cuid())
+  pageId        String
+  parentBlockId String?
+  type          String
+  content       Json
+  position      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  page        Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  parentBlock Block?  @relation("BlockChildren", fields: [parentBlockId], references: [id], onDelete: SetNull)
+  children    Block[] @relation("BlockChildren")
+}
