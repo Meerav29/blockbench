@@ -27,11 +27,30 @@ export default async function PageRoute({
     orderBy: { position: "asc" },
   });
 
+  const pageRow = {
+    ...page,
+    createdAt: page.createdAt.toISOString(),
+    updatedAt: page.updatedAt.toISOString(),
+  };
+
+  const blockRows = blocks.map((b) => ({
+    ...b,
+    content: (b.content ?? {}) as Record<string, unknown>,
+    createdAt: b.createdAt.toISOString(),
+    updatedAt: b.updatedAt.toISOString(),
+  }));
+
+  const allPageRows = allPages.map((p) => ({
+    ...p,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  }));
+
   return (
     <>
-      <Sidebar pages={allPages} activePageId={pageId} />
+      <Sidebar pages={allPageRows} activePageId={pageId} />
       <main className="flex-1 overflow-y-auto">
-        <Editor page={page} initialBlocks={blocks} />
+        <Editor page={pageRow} initialBlocks={blockRows} />
       </main>
     </>
   );
