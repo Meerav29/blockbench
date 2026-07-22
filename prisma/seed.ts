@@ -1,232 +1,233 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { createPrismaAdapter } from "../lib/prismaAdapter";
+import { refreshContextSuggestionsForPage } from "../lib/contextWeaver";
+import { PageKind } from "../lib/types";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const adapter = createPrismaAdapter();
 const prisma = new PrismaClient({ adapter });
 const WORKSPACE_ID = "clworkspace0000000000000000";
 
+type SeedBlock = {
+  type: string;
+  content: Record<string, unknown>;
+  position: number;
+  parentBlockId?: string | null;
+};
+
+async function createPageWithBlocks(input: {
+  title: string;
+  icon: string;
+  kind: PageKind;
+  position: number;
+  parentId?: string | null;
+  blocks: SeedBlock[];
+}) {
+  const page = await prisma.page.create({
+    data: {
+      title: input.title,
+      icon: input.icon,
+      kind: input.kind,
+      position: input.position,
+      workspaceId: WORKSPACE_ID,
+      parentId: input.parentId ?? null,
+    },
+  });
+
+  await prisma.block.createMany({
+    data: input.blocks.map((block) => ({
+      pageId: page.id,
+      type: block.type,
+      content: block.content,
+      position: block.position,
+      parentBlockId: block.parentBlockId ?? null,
+    })),
+  });
+
+  return page;
+}
+
 async function main() {
-  // Clean existing data
+  await prisma.relationSuggestion.deleteMany();
+  await prisma.pageRelation.deleteMany();
   await prisma.block.deleteMany();
   await prisma.page.deleteMany();
   await prisma.workspace.deleteMany();
 
-  // Create workspace
   await prisma.workspace.create({
-    data: { id: WORKSPACE_ID, name: "My Workspace" },
+    data: { id: WORKSPACE_ID, name: "PM Sandbox Workspace" },
   });
 
-  // Page 1: Getting Started (root)
-  const gettingStarted = await prisma.page.create({
-    data: {
-      title: "Getting Started",
-      icon: "🚀",
-      position: 0,
-      workspaceId: WORKSPACE_ID,
-      parentId: null,
-    },
-  });
-
-  await prisma.block.createMany({
-    data: [
+  const home = await createPageWithBlocks({
+    title: "PM Home",
+    icon: "🏠",
+    kind: "GENERAL",
+    position: 0,
+    blocks: [
       {
-        pageId: gettingStarted.id,
         type: "heading_1",
-        content: { type: "heading", attrs: { level: 1 }, text: "Welcome to Blockbench" },
+        content: { type: "heading", attrs: { level: 1 }, text: "Context Weaver Prototype" },
         position: 0,
-        parentBlockId: null,
       },
       {
-        pageId: gettingStarted.id,
         type: "paragraph",
-        content: { type: "paragraph", text: "This is your prototype workspace. Edit any block, use / to insert new block types, and drag the handle to reorder." },
+        content: {
+          type: "paragraph",
+          text: "Use the page type selector to model roadmap items, meetings, tasks, and feedback. The right rail suggests related pages based on page content.",
+        },
         position: 1,
-        parentBlockId: null,
-      },
-      {
-        pageId: gettingStarted.id,
-        type: "to_do",
-        content: { type: "taskItem", attrs: { checked: false }, text: "Try the slash command menu" },
-        position: 2,
-        parentBlockId: null,
-      },
-      {
-        pageId: gettingStarted.id,
-        type: "to_do",
-        content: { type: "taskItem", attrs: { checked: true }, text: "Open this workspace" },
-        position: 3,
-        parentBlockId: null,
-      },
-      {
-        pageId: gettingStarted.id,
-        type: "divider",
-        content: { type: "horizontalRule" },
-        position: 4,
-        parentBlockId: null,
-      },
-      {
-        pageId: gettingStarted.id,
-        type: "bulleted_list_item",
-        content: { type: "listItem", text: "Pages are nested in the sidebar" },
-        position: 5,
-        parentBlockId: null,
-      },
-      {
-        pageId: gettingStarted.id,
-        type: "bulleted_list_item",
-        content: { type: "listItem", text: "Changes auto-save after 500ms" },
-        position: 6,
-        parentBlockId: null,
       },
     ],
   });
 
-  // Page 2: Meeting Notes (child of Getting Started)
-  const meetingNotes = await prisma.page.create({
-    data: {
-      title: "Meeting Notes",
-      icon: "📝",
-      position: 0,
-      workspaceId: WORKSPACE_ID,
-      parentId: gettingStarted.id,
-    },
+  const roadmap = await createPageWithBlocks({
+    title: "Billing Redesign",
+    icon: "🧭",
+    kind: "ROADMAP",
+    position: 1,
+    blocks: [
+      {
+        type: "heading_1",
+        content: { type: "heading", attrs: { level: 1 }, text: "Billing Redesign" },
+        position: 0,
+      },
+      {
+        type: "paragraph",
+        content: {
+          type: "paragraph",
+          text: "This roadmap item covers the billing redesign, invoice clarity, checkout performance, and recovery after payment timeout errors.",
+        },
+        position: 1,
+      },
+      {
+        type: "bulleted_list_item",
+        content: { type: "listItem", text: "Reduce billing latency during checkout" },
+        position: 2,
+      },
+      {
+        type: "bulleted_list_item",
+        content: { type: "listItem", text: "Clarify invoice status after payment retry" },
+        position: 3,
+      },
+    ],
   });
 
-  await prisma.block.createMany({
-    data: [
+  const task = await createPageWithBlocks({
+    title: "Fix Billing Timeout Bug",
+    icon: "✅",
+    kind: "TASK",
+    position: 0,
+    parentId: roadmap.id,
+    blocks: [
       {
-        pageId: meetingNotes.id,
         type: "heading_2",
-        content: { type: "heading", attrs: { level: 2 }, text: "Q3 Planning — July 2026" },
+        content: { type: "heading", attrs: { level: 2 }, text: "Fix Billing Timeout Bug" },
         position: 0,
-        parentBlockId: null,
       },
       {
-        pageId: meetingNotes.id,
         type: "paragraph",
-        content: { type: "paragraph", text: "Attendees: Product, Engineering, Design" },
+        content: {
+          type: "paragraph",
+          text: "Debug the billing timeout bug causing duplicate invoices and poor payment retry performance for enterprise checkout flows.",
+        },
         position: 1,
-        parentBlockId: null,
       },
       {
-        pageId: meetingNotes.id,
-        type: "numbered_list_item",
-        content: { type: "listItem", text: "Review Q2 metrics" },
+        type: "to_do",
+        content: { type: "taskItem", attrs: { checked: false }, text: "Reproduce the checkout timeout issue" },
         position: 2,
-        parentBlockId: null,
       },
       {
-        pageId: meetingNotes.id,
-        type: "numbered_list_item",
-        content: { type: "listItem", text: "Prioritise feature backlog" },
+        type: "to_do",
+        content: { type: "taskItem", attrs: { checked: false }, text: "Ship invoice retry fix behind feature flag" },
         position: 3,
-        parentBlockId: null,
-      },
-      {
-        pageId: meetingNotes.id,
-        type: "numbered_list_item",
-        content: { type: "listItem", text: "Assign sprint owners" },
-        position: 4,
-        parentBlockId: null,
-      },
-      {
-        pageId: meetingNotes.id,
-        type: "toggle",
-        content: { type: "toggle", attrs: { collapsed: false }, text: "Action items" },
-        position: 5,
-        parentBlockId: null,
       },
     ],
   });
 
-  // Toggle child block
-  const toggleBlock = await prisma.block.findFirst({
-    where: { pageId: meetingNotes.id, type: "toggle" },
-  });
-  if (toggleBlock) {
-    await prisma.block.create({
-      data: {
-        pageId: meetingNotes.id,
-        parentBlockId: toggleBlock.id,
-        type: "paragraph",
-        content: { type: "paragraph", text: "Follow up with design team by Friday" },
-        position: 0,
-      },
-    });
-  }
-
-  // Page 3: Feature Ideas (root)
-  const featureIdeas = await prisma.page.create({
-    data: {
-      title: "Feature Ideas",
-      icon: "💡",
-      position: 1,
-      workspaceId: WORKSPACE_ID,
-      parentId: null,
-    },
-  });
-
-  await prisma.block.createMany({
-    data: [
+  const feedback = await createPageWithBlocks({
+    title: "Billing Feedback Digest",
+    icon: "💬",
+    kind: "FEEDBACK",
+    position: 2,
+    blocks: [
       {
-        pageId: featureIdeas.id,
         type: "heading_1",
-        content: { type: "heading", attrs: { level: 1 }, text: "Feature Ideas" },
+        content: { type: "heading", attrs: { level: 1 }, text: "Billing Feedback Digest" },
         position: 0,
-        parentBlockId: null,
       },
       {
-        pageId: featureIdeas.id,
         type: "paragraph",
-        content: { type: "paragraph", text: "Gaps to prototype based on Notion user feedback:" },
+        content: {
+          type: "paragraph",
+          text: "Users report billing confusion when checkout stalls, payment retries fail, and invoice totals look inconsistent after timeout recovery.",
+        },
         position: 1,
-        parentBlockId: null,
       },
       {
-        pageId: featureIdeas.id,
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Sprint burndown chart view" },
+        content: { type: "listItem", text: "Duplicate invoices after timeout" },
         position: 2,
-        parentBlockId: null,
       },
       {
-        pageId: featureIdeas.id,
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Custom hex color for tags" },
+        content: { type: "listItem", text: "Slow billing confirmation in enterprise checkout" },
         position: 3,
-        parentBlockId: null,
-      },
-      {
-        pageId: featureIdeas.id,
-        type: "bulleted_list_item",
-        content: { type: "listItem", text: "Native time tracking on rows" },
-        position: 4,
-        parentBlockId: null,
-      },
-      {
-        pageId: featureIdeas.id,
-        type: "divider",
-        content: { type: "horizontalRule" },
-        position: 5,
-        parentBlockId: null,
-      },
-      {
-        pageId: featureIdeas.id,
-        type: "paragraph",
-        content: { type: "paragraph", text: "Pick one and build it on top of this scaffold." },
-        position: 6,
-        parentBlockId: null,
       },
     ],
   });
 
-  console.log("✅ Seed complete: 1 workspace, 3 pages, blocks created");
+  const meeting = await createPageWithBlocks({
+    title: "Billing Performance Sync",
+    icon: "📝",
+    kind: "MEETING",
+    position: 3,
+    blocks: [
+      {
+        type: "heading_1",
+        content: { type: "heading", attrs: { level: 1 }, text: "Billing Performance Sync" },
+        position: 0,
+      },
+      {
+        type: "paragraph",
+        content: {
+          type: "paragraph",
+          text: "Reviewed the Billing Redesign roadmap item, the billing timeout bug task, and user feedback about invoice confusion during checkout.",
+        },
+        position: 1,
+      },
+      {
+        type: "numbered_list_item",
+        content: { type: "listItem", text: "Align roadmap scope for payment retry and invoice clarity" },
+        position: 2,
+      },
+      {
+        type: "numbered_list_item",
+        content: { type: "listItem", text: "Prioritize fix for billing timeout performance regression" },
+        position: 3,
+      },
+      {
+        type: "numbered_list_item",
+        content: { type: "listItem", text: "Review feedback themes from enterprise checkout users" },
+        position: 4,
+      },
+    ],
+  });
+
+  await Promise.all([
+    refreshContextSuggestionsForPage(home.id, prisma),
+    refreshContextSuggestionsForPage(roadmap.id, prisma),
+    refreshContextSuggestionsForPage(task.id, prisma),
+    refreshContextSuggestionsForPage(feedback.id, prisma),
+    refreshContextSuggestionsForPage(meeting.id, prisma),
+  ]);
+
+  console.log("✅ Seed complete: Context Weaver demo workspace created");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error) => {
+    console.error(error);
     process.exit(1);
   })
   .finally(async () => {

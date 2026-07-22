@@ -6,6 +6,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PageKind {
+  GENERAL
+  MEETING
+  ROADMAP
+  TASK
+  FEEDBACK
+}
+
+enum SuggestionStatus {
+  PENDING
+  DISMISSED
+  APPROVED
+}
+
+enum RelationType {
+  CONTEXTUAL
+}
+
 model Workspace {
   id        String   @id @default(cuid())
   name      String
@@ -17,16 +35,21 @@ model Page {
   id          String   @id @default(cuid())
   title       String   @default("Untitled")
   icon        String?
+  kind        PageKind @default(GENERAL)
   position    Int      @default(0)
   workspaceId String
   parentId    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent    Page?     @relation("PageChildren", fields: [parentId], references: [id], onDelete: SetNull)
-  children  Page[]    @relation("PageChildren")
-  blocks    Block[]
+  workspace           Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent              Page?               @relation("PageChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Page[]              @relation("PageChildren")
+  blocks              Block[]
+  outgoingRelations   PageRelation[]      @relation("SourceRelations")
+  incomingRelations   PageRelation[]      @relation("TargetRelations")
+  outgoingSuggestions RelationSuggestion[] @relation("SourceSuggestions")
+  incomingSuggestions RelationSuggestion[] @relation("TargetSuggestions")
 }
 
 model Block {
@@ -42,4 +65,35 @@ model Block {
   page        Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
   parentBlock Block?  @relation("BlockChildren", fields: [parentBlockId], references: [id], onDelete: SetNull)
   children    Block[] @relation("BlockChildren")
+}
+
+model PageRelation {
+  id           String       @id @default(cuid())
+  sourcePageId String
+  targetPageId String
+  relationType RelationType @default(CONTEXTUAL)
+  confidence   Float
+  rationale    String
+  createdAt    DateTime     @default(now())
+
+  sourcePage Page @relation("SourceRelations", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  targetPage Page @relation("TargetRelations", fields: [targetPageId], references: [id], onDelete: Cascade)
+
+  @@unique([sourcePageId, targetPageId])
+}
+
+model RelationSuggestion {
+  id           String           @id @default(cuid())
+  sourcePageId String
+  targetPageId String
+  confidence   Float
+  rationale    String
+  status       SuggestionStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  sourcePage Page @relation("SourceSuggestions", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  targetPage Page @relation("TargetSuggestions", fields: [targetPageId], references: [id], onDelete: Cascade)
+
+  @@unique([sourcePageId, targetPageId])
 }

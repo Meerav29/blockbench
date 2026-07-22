@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { Editor } from "@/components/editor/Editor";
 import { WORKSPACE_ID } from "@/lib/constants";
+import { getContextWeaverPayload } from "@/lib/contextWeaver";
+import { ContextWeaverPanel } from "@/components/context/ContextWeaverPanel";
 
 export default async function PageRoute({
   params,
@@ -22,10 +24,13 @@ export default async function PageRoute({
     orderBy: { position: "asc" },
   });
 
-  const allPages = await prisma.page.findMany({
-    where: { workspaceId: WORKSPACE_ID },
-    orderBy: { position: "asc" },
-  });
+  const [allPages, contextData] = await Promise.all([
+    prisma.page.findMany({
+      where: { workspaceId: WORKSPACE_ID },
+      orderBy: { position: "asc" },
+    }),
+    getContextWeaverPayload(pageId),
+  ]);
 
   const pageRow = {
     ...page,
@@ -49,9 +54,14 @@ export default async function PageRoute({
   return (
     <>
       <Sidebar pages={allPageRows} activePageId={pageId} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto">
         <Editor page={pageRow} initialBlocks={blockRows} />
       </main>
+      <ContextWeaverPanel
+        pageId={pageId}
+        currentKind={pageRow.kind}
+        initialData={contextData}
+      />
     </>
   );
 }

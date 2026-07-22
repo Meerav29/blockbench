@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { refreshContextSuggestionsForPage } from "@/lib/contextWeaver";
 import { Prisma } from "@prisma/client";
 import { BlockRow } from "@/lib/types";
 
@@ -42,6 +43,8 @@ export async function PATCH(
       })
     ),
   ]);
+
+  await refreshContextSuggestionsForPage(pageId);
 
   return NextResponse.json({ success: true });
 }
