@@ -150,6 +150,14 @@ export function Editor({ page, initialBlocks }: Props) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageId = page.id;
 
+  const announceContextRefresh = useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent("context-weaver:refresh", {
+        detail: { pageId },
+      })
+    );
+  }, [pageId]);
+
   const saveBlocks = useCallback(
     async (doc: Record<string, unknown>) => {
       setSaveState("saving");
@@ -162,13 +170,14 @@ export function Editor({ page, initialBlocks }: Props) {
         });
         if (!res.ok) throw new Error("Save failed");
         setSaveState("saved");
+        announceContextRefresh();
         setTimeout(() => setSaveState("idle"), 2000);
       } catch {
         setSaveState("error");
         setTimeout(() => setSaveState("idle"), 2000);
       }
     },
-    [pageId]
+    [announceContextRefresh, pageId]
   );
 
   const editor = useEditor({
@@ -200,11 +209,12 @@ export function Editor({ page, initialBlocks }: Props) {
   }, []);
 
   async function saveTitle(newTitle: string) {
-    await fetch(`/api/pages/${pageId}`, {
+    const res = await fetch(`/api/pages/${pageId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle }),
     });
+    if (res.ok) announceContextRefresh();
   }
 
   return (

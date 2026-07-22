@@ -74,6 +74,7 @@ export interface SlashMenuHandle {
 
 export const SlashMenu = forwardRef<SlashMenuHandle, Props>(
   ({ editor: _editor, items, command }, ref) => {
+    void _editor;
     const [selectedIndex, setSelectedIndex] = useState(0);
 
     useImperativeHandle(ref, () => ({
