@@ -73,7 +73,7 @@ async function main() {
         type: "paragraph",
         content: {
           type: "paragraph",
-          text: "Use the page type selector to model roadmap items, meetings, tasks, and feedback. The right rail suggests related pages based on page content.",
+          text: "Use the page type selector to model roadmap items, meetings, tasks, and feedback. This demo uses a simple page icon feature so the relation suggestions are easy to explain.",
         },
         position: 1,
       },
@@ -81,39 +81,39 @@ async function main() {
   });
 
   const roadmap = await createPageWithBlocks({
-    title: "Billing Redesign",
-    icon: "🧭",
+    title: "Page Icon Refresh",
+    icon: "🎨",
     kind: "ROADMAP",
     position: 1,
     blocks: [
       {
         type: "heading_1",
-        content: { type: "heading", attrs: { level: 1 }, text: "Billing Redesign" },
+        content: { type: "heading", attrs: { level: 1 }, text: "Page Icon Refresh" },
         position: 0,
       },
       {
         type: "paragraph",
         content: {
           type: "paragraph",
-          text: "This roadmap item covers the billing redesign, invoice clarity, checkout performance, and recovery after payment timeout errors.",
+          text: "This roadmap item improves how page icons appear in the sidebar and introduces a lighter-weight emoji icon picker for page personalization.",
         },
         position: 1,
       },
       {
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Reduce billing latency during checkout" },
+        content: { type: "listItem", text: "Refresh sidebar icon visuals for easier scanning" },
         position: 2,
       },
       {
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Clarify invoice status after payment retry" },
+        content: { type: "listItem", text: "Add emoji icon picker to page settings" },
         position: 3,
       },
     ],
   });
 
   const task = await createPageWithBlocks({
-    title: "Fix Billing Timeout Bug",
+    title: "Ship Emoji Icon Picker",
     icon: "✅",
     kind: "TASK",
     position: 0,
@@ -121,94 +121,94 @@ async function main() {
     blocks: [
       {
         type: "heading_2",
-        content: { type: "heading", attrs: { level: 2 }, text: "Fix Billing Timeout Bug" },
+        content: { type: "heading", attrs: { level: 2 }, text: "Ship Emoji Icon Picker" },
         position: 0,
       },
       {
         type: "paragraph",
         content: {
           type: "paragraph",
-          text: "Debug the billing timeout bug causing duplicate invoices and poor payment retry performance for enterprise checkout flows.",
+          text: "Build the emoji icon picker so users can change a page icon directly from the page header and see the update immediately in the sidebar.",
         },
         position: 1,
       },
       {
         type: "to_do",
-        content: { type: "taskItem", attrs: { checked: false }, text: "Reproduce the checkout timeout issue" },
+        content: { type: "taskItem", attrs: { checked: false }, text: "Add icon picker trigger in the page header" },
         position: 2,
       },
       {
         type: "to_do",
-        content: { type: "taskItem", attrs: { checked: false }, text: "Ship invoice retry fix behind feature flag" },
+        content: { type: "taskItem", attrs: { checked: false }, text: "Persist selected emoji icon and refresh sidebar state" },
         position: 3,
       },
     ],
   });
 
   const feedback = await createPageWithBlocks({
-    title: "Billing Feedback Digest",
+    title: "Sidebar Icon Feedback",
     icon: "💬",
     kind: "FEEDBACK",
     position: 2,
     blocks: [
       {
         type: "heading_1",
-        content: { type: "heading", attrs: { level: 1 }, text: "Billing Feedback Digest" },
+        content: { type: "heading", attrs: { level: 1 }, text: "Sidebar Icon Feedback" },
         position: 0,
       },
       {
         type: "paragraph",
         content: {
           type: "paragraph",
-          text: "Users report billing confusion when checkout stalls, payment retries fail, and invoice totals look inconsistent after timeout recovery.",
+          text: "Users say the current page icon treatment is too subtle in the sidebar and want a quicker way to pick an emoji icon without leaving the page.",
         },
         position: 1,
       },
       {
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Duplicate invoices after timeout" },
+        content: { type: "listItem", text: "Sidebar icons are hard to scan in dense docs" },
         position: 2,
       },
       {
         type: "bulleted_list_item",
-        content: { type: "listItem", text: "Slow billing confirmation in enterprise checkout" },
+        content: { type: "listItem", text: "Users expect an emoji picker when changing a page icon" },
         position: 3,
       },
     ],
   });
 
   const meeting = await createPageWithBlocks({
-    title: "Billing Performance Sync",
+    title: "Icon Picker Kickoff",
     icon: "📝",
     kind: "MEETING",
     position: 3,
     blocks: [
       {
         type: "heading_1",
-        content: { type: "heading", attrs: { level: 1 }, text: "Billing Performance Sync" },
+        content: { type: "heading", attrs: { level: 1 }, text: "Icon Picker Kickoff" },
         position: 0,
       },
       {
         type: "paragraph",
         content: {
           type: "paragraph",
-          text: "Reviewed the Billing Redesign roadmap item, the billing timeout bug task, and user feedback about invoice confusion during checkout.",
+          text: "Reviewed the Page Icon Refresh roadmap item, the Ship Emoji Icon Picker task, and user feedback about sidebar icon clarity and page personalization.",
         },
         position: 1,
       },
       {
         type: "numbered_list_item",
-        content: { type: "listItem", text: "Align roadmap scope for payment retry and invoice clarity" },
+        content: { type: "listItem", text: "Align scope for sidebar icon refresh and emoji picker launch" },
         position: 2,
       },
       {
         type: "numbered_list_item",
-        content: { type: "listItem", text: "Prioritize fix for billing timeout performance regression" },
+        content: { type: "listItem", text: "Prioritize the page header icon picker task" },
         position: 3,
       },
       {
         type: "numbered_list_item",
-        content: { type: "listItem", text: "Review feedback themes from enterprise checkout users" },
+        content: { type: "listItem", text: "Review feedback themes around sidebar icon discoverability" },
         position: 4,
       },
     ],
