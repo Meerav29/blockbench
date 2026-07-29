@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -8,11 +9,17 @@ import TaskItem from "@tiptap/extension-task-item";
 import Typography from "@tiptap/extension-typography";
 import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import { SlashCommand } from "./extensions/SlashCommand";
-import { BlockRow, PageRow } from "@/lib/types";
+import {
+  ApprovedRelationCard,
+  BlockRow,
+  ContextWeaverPayload,
+  PageRow,
+} from "@/lib/types";
 
 interface Props {
   page: PageRow;
   initialBlocks: BlockRow[];
+  initialRelations: ApprovedRelationCard[];
 }
 
 function blocksToTiptapContent(blocks: BlockRow[]) {
@@ -144,9 +151,10 @@ function tiptapDocToBlocks(doc: Record<string, unknown>, pageId: string): Omit<B
   return blocks;
 }
 
-export function Editor({ page, initialBlocks }: Props) {
+export function Editor({ page, initialBlocks, initialRelations }: Props) {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [title, setTitle] = useState(page.title);
+  const [approvedRelations, setApprovedRelations] = useState(initialRelations);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageId = page.id;
 
@@ -203,10 +211,25 @@ export function Editor({ page, initialBlocks }: Props) {
   });
 
   useEffect(() => {
+    async function refreshRelations() {
+      const res = await fetch(`/api/pages/${pageId}/context`);
+      if (!res.ok) return;
+      const payload = (await res.json()) as ContextWeaverPayload;
+      setApprovedRelations(payload.relations);
+    }
+
+    function handleRefresh(event: Event) {
+      const detail = (event as CustomEvent<{ pageId?: string }>).detail;
+      if (!detail || detail.pageId !== pageId) return;
+      void refreshRelations();
+    }
+
+    window.addEventListener("context-weaver:refresh", handleRefresh);
     return () => {
+      window.removeEventListener("context-weaver:refresh", handleRefresh);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, []);
+  }, [pageId]);
 
   async function saveTitle(newTitle: string) {
     const res = await fetch(`/api/pages/${pageId}`, {
@@ -217,6 +240,12 @@ export function Editor({ page, initialBlocks }: Props) {
     if (res.ok) announceContextRefresh();
   }
 
+  const outgoingRelations = approvedRelations.filter(
+    (relation) => relation.direction === "outgoing"
+  );
+  const incomingRelations = approvedRelations.filter(
+    (relation) => relation.direction === "incoming"
+  );
   return (
     <div className="max-w-3xl mx-auto px-8 py-12">
       <div className="flex items-center justify-between mb-6">
@@ -237,6 +266,11 @@ export function Editor({ page, initialBlocks }: Props) {
         </div>
       </div>
 
+      <InlineRelationRow
+        outgoingRelations={outgoingRelations}
+        incomingRelations={incomingRelations}
+      />
+
       {editor && (
         <DragHandle editor={editor}>
           <div className="text-gray-300 hover:text-gray-500 cursor-grab px-1">⠿</div>
@@ -244,6 +278,101 @@ export function Editor({ page, initialBlocks }: Props) {
       )}
 
       <EditorContent editor={editor} />
+    </div>
+  );
+}
+
+function InlineRelationRow({
+  outgoingRelations,
+  incomingRelations,
+}: {
+  outgoingRelations: ApprovedRelationCard[];
+  incomingRelations: ApprovedRelationCard[];
+}) {
+  return (
+    <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-stone-500">
+      <HoverRelationMenu
+        label="Linked to"
+        relations={outgoingRelations}
+        tone="emerald"
+        emptyCopy="No approved outgoing links yet."
+      />
+      <span className="text-stone-300">•</span>
+      <HoverRelationMenu
+        label="Referenced by"
+        relations={incomingRelations}
+        tone="sky"
+        emptyCopy="No approved incoming links yet."
+      />
+    </div>
+  );
+}
+
+function HoverRelationMenu({
+  label,
+  relations,
+  tone,
+  emptyCopy,
+}: {
+  label: string;
+  relations: ApprovedRelationCard[];
+  tone: "emerald" | "sky";
+  emptyCopy: string;
+}) {
+  const panelTone =
+    tone === "emerald"
+      ? "border-emerald-200/80 bg-emerald-50/95"
+      : "border-sky-200/80 bg-sky-50/95";
+
+  const badgeTone =
+    tone === "emerald"
+      ? "bg-emerald-100 text-emerald-800"
+      : "bg-sky-100 text-sky-800";
+
+  return (
+    <div className="group relative">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-[15px] font-medium text-stone-500 transition-colors hover:text-stone-800 focus:outline-none"
+      >
+        <span>{label}</span>
+        <span className="text-stone-400">{relations.length}</span>
+      </button>
+      <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-80 translate-y-1 rounded-2xl border border-stone-200 bg-white p-3 opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-stone-900">{label}</div>
+          <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${badgeTone}`}>
+            {relations.length}
+          </span>
+        </div>
+        {relations.length === 0 ? (
+          <p className="mt-3 text-sm leading-5 text-stone-500">{emptyCopy}</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {relations.map((relation) => (
+              <Link
+                key={relation.id}
+                href={`/${relation.relatedPage.id}`}
+                className={`block rounded-xl border px-3 py-2 transition-colors hover:bg-white/80 ${panelTone}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-stone-900">
+                      {relation.relatedPage.icon ?? "📄"} {relation.relatedPage.title}
+                    </div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.14em] text-stone-500">
+                      {relation.relatedPage.kind}
+                    </div>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-medium ${badgeTone}`}>
+                    {Math.round(relation.confidence * 100)}%
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

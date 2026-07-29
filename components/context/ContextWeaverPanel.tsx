@@ -31,6 +31,10 @@ function confidenceLabel(confidence: number) {
   return "Low";
 }
 
+function relationDirectionCopy(direction: ApprovedRelationCard["direction"]) {
+  return direction === "outgoing" ? "This page links to" : "This page is referenced by";
+}
+
 interface Props {
   pageId: string;
   currentKind: PageKind;
@@ -42,6 +46,8 @@ export function ContextWeaverPanel({ pageId, currentKind, initialData }: Props) 
   const [suggestions, setSuggestions] = useState<SuggestionCard[]>(initialData.suggestions);
   const [relations, setRelations] = useState<ApprovedRelationCard[]>(initialData.relations);
   const [busy, setBusy] = useState(false);
+  const outgoingRelations = relations.filter((relation) => relation.direction === "outgoing");
+  const incomingRelations = relations.filter((relation) => relation.direction === "incoming");
 
   function applyPayload(payload: ContextWeaverPayload) {
     setSuggestions(payload.suggestions);
@@ -210,33 +216,83 @@ export function ContextWeaverPanel({ pageId, currentKind, initialData }: Props) 
 
         <section className="mt-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-stone-900">Approved Links</h3>
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-5">
             {relations.length === 0 ? (
               <p className="text-sm leading-5 text-stone-500">
                 Approved links will appear here as your lightweight knowledge graph.
               </p>
             ) : (
-              relations.map((relation) => (
-                <div key={relation.id} className="rounded-2xl border border-stone-200 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.16em] text-stone-500">
-                        {relation.direction === "outgoing" ? "Linked to" : "Linked from"}
-                      </div>
-                      <Link
-                        href={`/${relation.relatedPage.id}`}
-                        className="mt-1 block text-sm font-semibold text-stone-900 hover:text-stone-700"
-                      >
-                        {relation.relatedPage.icon ?? "📄"} {relation.relatedPage.title}
-                      </Link>
-                    </div>
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-800">
-                      {Math.round(relation.confidence * 100)}%
-                    </span>
+              <>
+                <div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    Outgoing Links
                   </div>
-                  <p className="mt-2 text-sm leading-5 text-stone-600">{relation.rationale}</p>
+                  <div className="space-y-3">
+                    {outgoingRelations.length === 0 ? (
+                      <p className="text-sm leading-5 text-stone-500">
+                        No explicit links out from this page yet.
+                      </p>
+                    ) : (
+                      outgoingRelations.map((relation) => (
+                        <div key={relation.id} className="rounded-2xl border border-stone-200 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-xs uppercase tracking-[0.16em] text-stone-500">
+                                {relationDirectionCopy(relation.direction)}
+                              </div>
+                              <Link
+                                href={`/${relation.relatedPage.id}`}
+                                className="mt-1 block text-sm font-semibold text-stone-900 hover:text-stone-700"
+                              >
+                                {relation.relatedPage.icon ?? "📄"} {relation.relatedPage.title}
+                              </Link>
+                            </div>
+                            <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-800">
+                              {Math.round(relation.confidence * 100)}%
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-5 text-stone-600">{relation.rationale}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              ))
+
+                <div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    Incoming Links
+                  </div>
+                  <div className="space-y-3">
+                    {incomingRelations.length === 0 ? (
+                      <p className="text-sm leading-5 text-stone-500">
+                        No other approved pages point here yet.
+                      </p>
+                    ) : (
+                      incomingRelations.map((relation) => (
+                        <div key={relation.id} className="rounded-2xl border border-stone-200 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-xs uppercase tracking-[0.16em] text-stone-500">
+                                {relationDirectionCopy(relation.direction)}
+                              </div>
+                              <Link
+                                href={`/${relation.relatedPage.id}`}
+                                className="mt-1 block text-sm font-semibold text-stone-900 hover:text-stone-700"
+                              >
+                                {relation.relatedPage.icon ?? "📄"} {relation.relatedPage.title}
+                              </Link>
+                            </div>
+                            <span className="rounded-full bg-sky-100 px-2 py-1 text-[11px] font-medium text-sky-800">
+                              {Math.round(relation.confidence * 100)}%
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-5 text-stone-600">{relation.rationale}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </section>

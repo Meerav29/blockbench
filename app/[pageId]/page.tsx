@@ -55,7 +55,11 @@ export default async function PageRoute({
     <>
       <Sidebar pages={allPageRows} activePageId={pageId} />
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <Editor page={pageRow} initialBlocks={blockRows} />
+        <Editor
+          page={pageRow}
+          initialBlocks={blockRows}
+          initialRelations={contextData.relations}
+        />
       </main>
       <ContextWeaverPanel
         pageId={pageId}
