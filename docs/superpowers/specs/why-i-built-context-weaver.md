@@ -81,7 +81,7 @@ I want the MVP to stay intentionally narrow.
 
 Right now it does three things:
 
-![Context Weaver MVP showing suggested links, approved navigation, and the in-page relation hover state](/context-weaver-mvp.png)
+![Context Weaver MVP showing suggested links, approved navigation, and the in-page relation hover state](../../../public/context-weaver-mvp.png)
 
 This screenshot shows the full loop in one place: suggested context in the right rail, approved links surfacing in-page, and linked pages becoming directly navigable.
 
